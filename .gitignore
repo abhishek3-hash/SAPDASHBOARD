@@ -1,0 +1,38 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.egg
+*.egg-info/
+dist/
+build/
+.eggs/
+*.egg-info/
+
+# Environments
+.env
+.venv
+env/
+venv/
+
+# Database (sensitive - do not commit)
+*.db
+*.sqlite
+*.sqlite3
+
+# Logs & debug files
+*.log
+wp_keys_debug.txt
+dev_rfc.log
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
