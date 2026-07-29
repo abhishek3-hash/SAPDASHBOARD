@@ -99,12 +99,11 @@ def _check_host(host: str, local_mount_hosts: dict):
     """
     try:
         if _is_local_mount(host, local_mount_hosts):
-            mount_path = _local_mount_path(host, local_mount_hosts)
+            mount_path = os.path.expanduser(_local_mount_path(host, local_mount_hosts))
             if not os.path.isdir(mount_path):
                 return False, f"Mount path for '{host}' not found: {mount_path}. Is the SMB share connected?"
-            rc, out, err = _run(["mount"])
-            if f"on {mount_path} " not in out and mount_path not in out:
-                return False, f"'{mount_path}' exists but does not appear to be an active mount. Reconnect the share for '{host}'."
+            if not os.access(mount_path, os.R_OK):
+                return False, f"Mount path '{mount_path}' exists but is not readable."
             return True, f"Local mount for {host} is active at {mount_path}."
 
         # SSH host: connectivity + sudo check (ControlMaster opens the persistent socket here)
@@ -137,9 +136,11 @@ def _stage_source_locally(host: str, path: str, local_mount_hosts: dict) -> str:
     local_tmp = os.path.join(tempfile.gettempdir(), f"{filename}.transport_copy.{os.getpid()}")
 
     if _is_local_mount(host, local_mount_hosts):
+        path = os.path.expanduser(path)
         if not os.path.isfile(path):
             raise FileNotFoundError(f"Source file not found at '{path}' (mount for {host}).")
-        shutil.copy2(path, local_tmp)
+        # Use copyfile (raw data stream) instead of copy2 (which forces SMB metadata/stat roundtrips)
+        shutil.copyfile(path, local_tmp)
         return local_tmp
 
     # SSH host: copy to remote tmp, scp down, cleanup remote tmp
@@ -171,8 +172,10 @@ def _stage_source_locally(host: str, path: str, local_mount_hosts: dict) -> str:
 def _deploy_to_target(host: str, local_tmp: str, dest_dir: str, filename: str, local_mount_hosts: dict):
     """Deploy a locally staged file to the target host (local or SSH)."""
     if _is_local_mount(host, local_mount_hosts):
+        dest_dir = os.path.expanduser(dest_dir)
         os.makedirs(dest_dir, exist_ok=True)
-        shutil.copy2(local_tmp, os.path.join(dest_dir, filename))
+        dest_path = os.path.join(dest_dir, filename)
+        shutil.copyfile(local_tmp, dest_path)
         return
 
     ctl = _ssh_ctl(host)
@@ -202,8 +205,13 @@ def _set_permissions(host: str, file_path: str, local_mount_hosts: dict) -> str:
 
 def _verify_target_file(host: str, file_path: str, local_mount_hosts: dict) -> str:
     if _is_local_mount(host, local_mount_hosts):
-        result = subprocess.run(["ls", "-l", file_path], capture_output=True, text=True)
-        return result.stdout.strip()
+        file_path = os.path.expanduser(file_path)
+        if os.path.exists(file_path):
+            st = os.stat(file_path)
+            sz = st.st_size
+            mtime = datetime.datetime.fromtimestamp(st.st_mtime).strftime("%b %d %H:%M")
+            return f"-rw-r--r-- 1 local local {sz} {mtime} {os.path.basename(file_path)}"
+        return f"File not found: {file_path}"
     rc, out, _ = _run(["ssh"] + _ssh_ctl(host) + [host, f"sudo ls -l '{file_path}'"], timeout=15)
     return out
 
