@@ -114,6 +114,14 @@ The `storage.py` router goes beyond basic data forwarding by implementing custom
 - **SM50 (Work Processes)**: Parses the `TH_WPINFO` payload to extract 14 precise columns that mirror the exact SAP GUI layout (including `Type`, `WP Status`, `Process ID`, `CPU Time`, `Priority`, `Name of Program`, `Client`, and `User ID`). It also implements multi-key fallback extraction for user IDs (`WP_USER`, `WP_UNAME`, `WP_BNAME`) and parses `UP2` (Update Task 2) processes separately, tracking them dynamically in the global `SM50_PEAK_UTILIZATION` cache.
 - **DB02 (Space Analytics)**: Dynamically checks the underlying database architecture (e.g., ORACLE vs HANA) and recalculates data modeling seeds accurately, presenting responsive tab titles (e.g., `Oracle Storage` vs `HANA Memory`) based on the live RFC connection dictionary data.
 
+### Transport Copy Utility Performance Architecture
+The `transport.py` router implements three layers of parallelism to minimise total transfer time:
+1. **SSH ControlMaster Multiplexing**: All SSH and SCP commands to the same host share one persistent TCP socket (using `-o ControlMaster=auto -o ControlPersist=120`). This eliminates the repeated TLS/crypto handshake overhead (~2–4s per command) for all subsequent commands after the first.
+2. **Parallel Preflight Checks**: All target host connectivity and sudo checks run simultaneously via `ThreadPoolExecutor` — total preflight time equals the slowest single host, not the sum of all hosts.
+3. **Parallel File Staging & Deployment**: The cofile (`K*.SID`) and data file (`R*.SID`) are staged from source simultaneously. Deployment to multiple target hosts also runs fully in parallel. A thread-safe `queue.Queue` collects per-thread log lines and flushes them into the SSE stream in real time.
+4. **SMB/Local Mount Support**: Windows hosts accessed via SMB network mounts (e.g. `/Volumes/trans`) bypass all SSH logic and use direct filesystem `copy2()` calls. `chmod 777` is automatically skipped for these hosts as it is not applicable to NTFS.
+
+
 ---
 
 ## 7. Frontend Architecture
