@@ -162,7 +162,7 @@
         .dashboard-layout { display: flex; gap: 0.5rem; align-items: stretch; flex: 1; min-height: 0; }
         .sidebar { background: var(--glass-bg); backdrop-filter: var(--glass-blur); -webkit-backdrop-filter: var(--glass-blur); border: 1px solid var(--glass-border); border-radius: 16px; padding: 1rem; box-shadow: var(--glass-shadow); width: 260px; display: flex; flex-direction: column; gap: 0.5rem; transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); overflow: hidden; flex-shrink: 0; }
         .sidebar.collapsed { width: 0; padding: 1rem 0; opacity: 0; border-width: 0; margin-right: -0.5rem; }
-        .content-panel { flex: 1; background: var(--glass-bg); backdrop-filter: var(--glass-blur); -webkit-backdrop-filter: var(--glass-blur); border: 1px solid var(--glass-border); border-radius: 16px; padding: 1.5rem; box-shadow: var(--glass-shadow); overflow: hidden; }
+        .content-panel { flex: 1; background: var(--glass-bg); backdrop-filter: var(--glass-blur); -webkit-backdrop-filter: var(--glass-blur); border: 1px solid var(--glass-border); border-radius: 16px; padding: 1.5rem; box-shadow: var(--glass-shadow); overflow: hidden; display: flex; flex-direction: column; min-height: 0; }
         .nav-item { color: var(--sap-text-muted); cursor: pointer; font-weight: 600; font-size: 0.875rem; padding: 0.75rem 1rem; border-radius: 6px; display: flex; align-items: center; width: 100%; box-sizing: border-box; }
         .nav-item.active { color: #ffffff; background: linear-gradient(135deg, #0a6ed1, #0ea5e9); font-weight: 600; box-shadow: 0 4px 12px rgba(10,110,209,0.25); }
 
@@ -422,11 +422,12 @@
                 <div id="tab-su53"  class="nav-item" onclick="switchTab('su53')">SU53 Authorization Audits</div>
                 <div id="tab-sm50"  class="nav-item" onclick="switchTab('sm50')">SM50 WorkProcess Metrics</div>
                 <div id="tab-db02"  class="nav-item" onclick="switchTab('db02')">DB02 Storage Analysis</div>
+                <div id="tab-transport" class="nav-item" onclick="switchTab('transport')">Transport Copy Utility</div>
             </div>
 
             <!-- Content Panel -->
             <div class="content-panel">
-                <div id="tabs-content-container">
+                <div id="tabs-content-container" style="flex:1; min-height:0; display:flex; flex-direction:column; overflow:hidden;">
                     <!-- Modular tab components will be injected here -->
                 </div>
             </div>
@@ -977,9 +978,9 @@
             activeTab = t;
             document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
             document.getElementById(`tab-${t}`).classList.add('active');
-            ['perf','dumps','su01','su53','sm50','db02'].forEach(v => {
+            ['perf','dumps','su01','su53','sm50','db02','transport'].forEach(v => {
                 const el = document.getElementById(`view-${v}`);
-                el.style.display = v === t ? (['su01','su53','sm50','db02'].includes(v) ? 'flex' : 'block') : 'none';
+                el.style.display = v === t ? (['su01','su53','sm50','db02','transport'].includes(v) ? 'flex' : 'block') : 'none';
             });
             if (t === 'su01')  fetchSAPSystemUsersList();
             if (t === 'sm50')  syncSM50EngineData();
@@ -1031,11 +1032,29 @@
                 tag.className = "status-indicator status-bad";
                 tag.title = "Disconnected";
                 tag.innerText = "";
-                if (systemName) delete sessionCredentials[systemName];
+
+                // Only clear SAP credentials on true authentication failures (wrong
+                // password, locked user, expired password). For any other error —
+                // RFC timeouts, SAP work-process busy, 500 server errors — keep the
+                // credentials so the user doesn't have to re-enter them every time
+                // there is a transient connection problem.
+                const isAuthFailure = (res.status === 401 || res.status === 403) &&
+                    (msg.toLowerCase().includes("logon") ||
+                     msg.toLowerCase().includes("password") ||
+                     msg.toLowerCase().includes("locked") ||
+                     msg.toLowerCase().includes("credentials") ||
+                     msg.toLowerCase().includes("unauthorized") ||
+                     msg.toLowerCase().includes("invalid user") ||
+                     msg.toLowerCase().includes("not authorized"));
+                if (isAuthFailure && systemName) {
+                    delete sessionCredentials[systemName];
+                }
+
                 alert(msg);
                 throw new Error(msg);
             }
         }
+
 
         async function fetchSystemMetrics() {
             const sel = document.getElementById('system-selector').value;
@@ -1211,6 +1230,7 @@
             initTabSu53(container);
             initTabSm50(container);
             initTabDb02(container);
+            initTabTransport(container);
             
             // Auto-login bypass
             document.getElementById('login-user').value = 'admin';
@@ -1226,6 +1246,7 @@
     <script src="components/tab_su53.js"></script>
     <script src="components/tab_sm50.js"></script>
     <script src="components/tab_db02.js"></script>
+    <script src="components/tab_transport.js"></script>
     
     <!-- Dump Details Modal -->
     <div id="dump-details-modal" class="modal-overlay">

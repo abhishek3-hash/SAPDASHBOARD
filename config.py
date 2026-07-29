@@ -3,7 +3,7 @@ import hashlib
 from fastapi import HTTPException, Depends, status
 from fastapi.security import OAuth2PasswordBearer
 from pydantic import BaseModel, Field
-from typing import Optional
+from typing import Optional, List, Dict
 
 def hash_password(password: str) -> str:
     salt = "sap_fiori_salt_value_123!"
@@ -36,6 +36,19 @@ class SM50RequestPayload(BaseModel):
 
 class DB02RequestPayload(BaseModel):
     connection: SAPConnectionPayload
+
+class TransportValidatePayload(BaseModel):
+    host: str
+    base_trans_dir: str = "/usr/sap/trans"
+    local_mount_hosts: Dict[str, str] = {}
+
+class TransportCopyPayload(BaseModel):
+    src_host: str
+    tgt_hosts: List[str]
+    trkorr: str
+    base_trans_dir: str = "/usr/sap/trans"
+    local_mount_hosts: Dict[str, str] = {}
+
 
 def get_current_user(token: str = Depends(oauth2_scheme)) -> dict:
     """Secures resource endpoints against invalid session requests."""

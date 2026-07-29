@@ -54,7 +54,7 @@ def init_db():
 init_db()
 
 # Import Modular Feature Routes
-from routers import auth, sys_matrix, logs, user_mgmt, security, storage, systems
+from routers import auth, sys_matrix, logs, user_mgmt, security, storage, systems, transport
 
 # Mount Micro-Routing Blueprints Natively
 app.include_router(auth.router)
@@ -64,6 +64,7 @@ app.include_router(user_mgmt.router)
 app.include_router(security.router)
 app.include_router(storage.router)
 app.include_router(systems.router)
+app.include_router(transport.router)
 
 if __name__ == "__main__":
     import uvicorn

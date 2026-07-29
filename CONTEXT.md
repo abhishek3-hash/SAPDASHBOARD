@@ -31,7 +31,17 @@ SAP/
     ├── security.py        <-- Auditing missing authorizations (SU53)
     ├── storage.py         <-- Workprocess (SM50) and DB metrics (DB02)
     ├── user_mgmt.py       <-- SAP User management (SU01)
-    └── index.html         <-- Fiori Dashboard Single Page App
+    ├── transport.py       <-- Transport Copy Utility (OS-level SSH/SCP file transfer)
+    ├── systems.py         <-- System landscape registry
+    ├── index.html         <-- Fiori Dashboard Single Page App
+    └── components/        <-- Modular JS tab components
+        ├── tab_perf.js    <-- Server Matrix tab
+        ├── tab_dumps.js   <-- Dumps & Logs tab
+        ├── tab_su01.js    <-- User Maintenance tab
+        ├── tab_su53.js    <-- Authorization Audits tab
+        ├── tab_sm50.js    <-- SM50 Work Processes tab
+        ├── tab_db02.js    <-- DB02 Storage Analysis tab
+        └── tab_transport.js <-- Transport Copy Utility tab
 ```
 
 ### Monolithic vs. Modular Structure
@@ -69,6 +79,7 @@ The FastAPI app splits business operations into discrete routing sub-systems:
 | [security.py](file:///Users/Abhishek/Downloads/SAP/routers/security.py) | `SU53 Auditing Module` | Tracks failing security checks for users. | `RFC_READ_TABLE` (on table `TOBJ`) |
 | [storage.py](file:///Users/Abhishek/Downloads/SAP/routers/storage.py) | `SM50 Workprocesses & DB02 Space` | Tracks active workprocesses and storage telemetry. | `TH_WPINFO`, `RFC_SYSTEM_INFO`, and `RFC_READ_TABLE` (on `TSPAS` & `DD02L`) |
 | [user_mgmt.py](file:///Users/Abhishek/Downloads/SAP/routers/user_mgmt.py) | `SU01 Master Module` | Fetches, locks, and unlocks SAP users. | `BAPI_USER_GETLIST`, `BAPI_USER_LOCK`, `BAPI_USER_UNLOCK` |
+| [transport.py](file:///Users/Abhishek/Downloads/SAP/routers/transport.py) | `Transport Copy Utility` | Copies SAP transport cofiles & data files between systems via OS-level SSH/SCP or SMB mount. No RFC connection required. | `ssh`, `scp`, local filesystem |
 
 ---
 
@@ -79,6 +90,7 @@ The FastAPI app splits business operations into discrete routing sub-systems:
 3.  **Role-Based Access Control (RBAC)**:
     *   **`get_current_user`**: Validates the JWT and parses the role.
     *   **`verify_admin_privileges`**: Restricts certain operations (like creating users or locking/unlocking SAP accounts) to accounts with the role `Admin`.
+4.  **Session Stability Fix**: SAP system credentials (`sessionCredentials`) are only cleared from memory on genuine authentication failures (HTTP 401/403 with logon-related error messages). Transient errors such as RFC timeouts, SAP work-process busy errors, or 500 server errors do **not** drop the session — the user is not prompted to re-enter their password on every network hiccup.
 
 ---
 
