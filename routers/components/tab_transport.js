@@ -71,12 +71,12 @@ const tabTransportHTML = `
                     <div style="margin-top:0.6rem;display:flex;flex-direction:column;gap:0.5rem;background:rgba(10,110,209,0.04);padding:0.75rem;border-radius:8px;border:1px solid rgba(10,110,209,0.15);">
                         <div style="font-size:0.72rem;color:var(--sap-text-muted);">Automate macOS SMB share mounting (e.g. EH8):</div>
                         <input id="smb-server" type="text" placeholder="SMB Server IP / Host, e.g. 52.52.3.97" style="font-size:0.75rem;padding:0.4rem;">
-                        <input id="smb-share" type="text" placeholder="Share Name, e.g. trans" style="font-size:0.75rem;padding:0.4rem;">
+                        <input id="smb-share" type="text" placeholder="Share Name, e.g. trans (not full path)" style="font-size:0.75rem;padding:0.4rem;">
                         <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.4rem;">
                             <input id="smb-user" type="text" placeholder="Username" style="font-size:0.75rem;padding:0.4rem;">
                             <input id="smb-pass" type="password" placeholder="Password" style="font-size:0.75rem;padding:0.4rem;">
                         </div>
-                        <input id="smb-mountpoint" type="text" value="/Volumes/trans" placeholder="Mount Point, e.g. /Volumes/trans" style="font-size:0.75rem;padding:0.4rem;font-family:monospace;">
+                        <input id="smb-mountpoint" type="text" value="/tmp/trans" placeholder="Mount Point, e.g. /tmp/trans or ~/trans" style="font-size:0.75rem;padding:0.4rem;font-family:monospace;">
                         
                         <div style="display:flex;gap:0.4rem;margin-top:0.2rem;">
                             <button onclick="tpMountSMB()" style="flex:1;padding:0.4rem;font-size:0.72rem;font-weight:600;background:#16a34a;color:white;border:none;border-radius:6px;cursor:pointer;">
@@ -372,10 +372,12 @@ async function tpRunCopy() {
 // --------------------------------------------------------------------------
 async function tpMountSMB() {
     const server = document.getElementById('smb-server').value.trim();
-    const share = document.getElementById('smb-share').value.trim();
+    let share = document.getElementById('smb-share').value.trim();
+    // Clean leading/trailing slashes if user typed /saploc/trans or /trans
+    share = share.replace(/^\/+|\/+$/g, '');
     const user = document.getElementById('smb-user').value.trim();
     const pass = document.getElementById('smb-pass').value;
-    const mountpoint = document.getElementById('smb-mountpoint').value.trim() || '/Volumes/trans';
+    const mountpoint = document.getElementById('smb-mountpoint').value.trim() || '/tmp/trans';
     const statusMsg = document.getElementById('smb-status-msg');
 
     if (!server || !share || !user || !pass) {
@@ -415,7 +417,7 @@ async function tpMountSMB() {
 }
 
 async function tpUnmountSMB() {
-    const mountpoint = document.getElementById('smb-mountpoint').value.trim() || '/Volumes/trans';
+    const mountpoint = document.getElementById('smb-mountpoint').value.trim() || '/tmp/trans';
     const statusMsg = document.getElementById('smb-status-msg');
     statusMsg.style.display = 'block';
     statusMsg.innerHTML = '<span style="color:#64748b;">Unmounting SMB share...</span>';
@@ -438,7 +440,7 @@ async function tpUnmountSMB() {
 }
 
 async function tpCheckSMBStatus() {
-    const mountpoint = document.getElementById('smb-mountpoint').value.trim() || '/Volumes/trans';
+    const mountpoint = document.getElementById('smb-mountpoint').value.trim() || '/tmp/trans';
     const statusMsg = document.getElementById('smb-status-msg');
     statusMsg.style.display = 'block';
     statusMsg.innerHTML = '<span style="color:#64748b;">Checking status...</span>';

@@ -459,17 +459,26 @@ def smb_mount(
     Mounts an SMB share onto the local filesystem using macOS mount_smbfs.
     Credentials are passed directly — never stored on disk.
     """
-    mount_point = payload.mount_point.rstrip("/")
+    mount_point = os.path.expanduser(payload.mount_point.rstrip("/"))
 
     # Already mounted — nothing to do
     if _is_mounted(mount_point):
         return {"success": True, "message": f"Share already mounted at {mount_point}."}
 
     # Create mount point directory if it doesn't exist
-    try:
-        os.makedirs(mount_point, exist_ok=True)
-    except Exception as e:
-        return {"success": False, "message": f"Could not create mount point '{mount_point}': {e}"}
+    if not os.path.exists(mount_point):
+        try:
+            os.makedirs(mount_point, exist_ok=True)
+        except PermissionError:
+            # Fallback to sudo mkdir -p if creating in root-owned dir like /Volumes
+            rc, out, err = _run(["sudo", "-n", "mkdir", "-p", mount_point], timeout=10)
+            if rc != 0:
+                return {
+                    "success": False,
+                    "message": f"Permission denied creating '{mount_point}'. Please use a user-writable path like '/tmp/trans' or '~/trans'."
+                }
+        except Exception as e:
+            return {"success": False, "message": f"Could not create mount point '{mount_point}': {e}"}
 
     # URL-encode credentials to safely handle special characters (@, :, /, etc.)
     user_enc = urllib.parse.quote(payload.smb_user, safe="")
