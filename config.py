@@ -49,6 +49,17 @@ class TransportCopyPayload(BaseModel):
     base_trans_dir: str = "/usr/sap/trans"
     local_mount_hosts: Dict[str, str] = {}
 
+class SMBMountPayload(BaseModel):
+    smb_server: str          # hostname or IP of the SMB server, e.g. "192.168.1.50"
+    smb_share: str           # share name, e.g. "trans"
+    smb_user: str            # SMB username
+    smb_password: str        # SMB password
+    mount_point: str         # local path to mount to, e.g. "/Volumes/trans"
+
+class SMBUnmountPayload(BaseModel):
+    mount_point: str         # local path to unmount, e.g. "/Volumes/trans"
+
+
 
 def get_current_user(token: str = Depends(oauth2_scheme)) -> dict:
     """Secures resource endpoints against invalid session requests."""

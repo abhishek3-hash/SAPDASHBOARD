@@ -58,9 +58,38 @@ const tabTransportHTML = `
                     </summary>
                     <div style="margin-top:0.6rem;">
                         <label style="font-size:0.72rem;color:var(--sap-text-muted);">JSON map of host → mount path</label>
-                        <textarea id="tp-local-mounts" rows="3"
+                        <textarea id="tp-local-mounts" rows="2"
                             placeholder='{"EH8": "/Volumes/trans"}'
                             style="width:100%;font-family:monospace;font-size:0.75rem;padding:0.5rem;border:1px solid var(--sap-border);border-radius:6px;background:rgba(255,255,255,0.6);resize:vertical;margin-top:0.35rem;"></textarea>
+                    </div>
+                </details>
+
+                <details style="cursor:pointer;" id="tp-smb-details">
+                    <summary style="font-size:0.75rem;font-weight:600;color:#0a6ed1;user-select:none;display:flex;align-items:center;gap:0.3rem;">
+                        <i data-lucide="hard-drive" style="width:13px;height:13px;"></i> SMB Auto-Mount Control (EH8 / Windows)
+                    </summary>
+                    <div style="margin-top:0.6rem;display:flex;flex-direction:column;gap:0.5rem;background:rgba(10,110,209,0.04);padding:0.75rem;border-radius:8px;border:1px solid rgba(10,110,209,0.15);">
+                        <div style="font-size:0.72rem;color:var(--sap-text-muted);">Automate macOS SMB share mounting (e.g. EH8):</div>
+                        <input id="smb-server" type="text" placeholder="SMB Server IP / Host, e.g. 52.52.3.97" style="font-size:0.75rem;padding:0.4rem;">
+                        <input id="smb-share" type="text" placeholder="Share Name, e.g. trans" style="font-size:0.75rem;padding:0.4rem;">
+                        <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.4rem;">
+                            <input id="smb-user" type="text" placeholder="Username" style="font-size:0.75rem;padding:0.4rem;">
+                            <input id="smb-pass" type="password" placeholder="Password" style="font-size:0.75rem;padding:0.4rem;">
+                        </div>
+                        <input id="smb-mountpoint" type="text" value="/Volumes/trans" placeholder="Mount Point, e.g. /Volumes/trans" style="font-size:0.75rem;padding:0.4rem;font-family:monospace;">
+                        
+                        <div style="display:flex;gap:0.4rem;margin-top:0.2rem;">
+                            <button onclick="tpMountSMB()" style="flex:1;padding:0.4rem;font-size:0.72rem;font-weight:600;background:#16a34a;color:white;border:none;border-radius:6px;cursor:pointer;">
+                                <i data-lucide="link" style="width:11px;height:11px;"></i> Mount Share
+                            </button>
+                            <button onclick="tpUnmountSMB()" style="padding:0.4rem 0.6rem;font-size:0.72rem;background:rgba(220,38,38,0.1);color:#dc2626;border:1px solid rgba(220,38,38,0.2);border-radius:6px;cursor:pointer;">
+                                Unmount
+                            </button>
+                            <button onclick="tpCheckSMBStatus()" style="padding:0.4rem 0.6rem;font-size:0.72rem;background:rgba(100,116,139,0.1);color:#64748b;border:1px solid rgba(100,116,139,0.2);border-radius:6px;cursor:pointer;">
+                                Status
+                            </button>
+                        </div>
+                        <div id="smb-status-msg" style="font-size:0.72rem;margin-top:0.2rem;display:none;"></div>
                     </div>
                 </details>
 
@@ -337,3 +366,95 @@ async function tpRunCopy() {
         document.getElementById('btn-tp-run').style.opacity = '1';
     }
 }
+
+// --------------------------------------------------------------------------
+// SMB Auto-Mount JS Handlers
+// --------------------------------------------------------------------------
+async function tpMountSMB() {
+    const server = document.getElementById('smb-server').value.trim();
+    const share = document.getElementById('smb-share').value.trim();
+    const user = document.getElementById('smb-user').value.trim();
+    const pass = document.getElementById('smb-pass').value;
+    const mountpoint = document.getElementById('smb-mountpoint').value.trim() || '/Volumes/trans';
+    const statusMsg = document.getElementById('smb-status-msg');
+
+    if (!server || !share || !user || !pass) {
+        alert('Please fill in SMB Server IP/Host, Share name, Username, and Password.');
+        return;
+    }
+
+    statusMsg.style.display = 'block';
+    statusMsg.innerHTML = '<span style="color:#64748b;">Mounting SMB share...</span>';
+
+    try {
+        const res = await fetch(`${BACKEND_BASE}/transport/smb-mount`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${SESSION_TOKEN}` },
+            body: JSON.stringify({
+                smb_server: server,
+                smb_share: share,
+                smb_user: user,
+                smb_password: pass,
+                mount_point: mountpoint
+            })
+        });
+        const data = await res.json();
+        if (data.success) {
+            statusMsg.innerHTML = `<span style="color:#16a34a;">✓ ${data.message}</span>`;
+            // Auto update local mounts field if empty
+            const lm = document.getElementById('tp-local-mounts');
+            if (!lm.value.trim()) {
+                lm.value = `{"EH8": "${mountpoint}"}`;
+            }
+        } else {
+            statusMsg.innerHTML = `<span style="color:#dc2626;">✗ ${data.message}</span>`;
+        }
+    } catch (e) {
+        statusMsg.innerHTML = `<span style="color:#dc2626;">✗ Mount request failed: ${e.message}</span>`;
+    }
+}
+
+async function tpUnmountSMB() {
+    const mountpoint = document.getElementById('smb-mountpoint').value.trim() || '/Volumes/trans';
+    const statusMsg = document.getElementById('smb-status-msg');
+    statusMsg.style.display = 'block';
+    statusMsg.innerHTML = '<span style="color:#64748b;">Unmounting SMB share...</span>';
+
+    try {
+        const res = await fetch(`${BACKEND_BASE}/transport/smb-unmount`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${SESSION_TOKEN}` },
+            body: JSON.stringify({ mount_point: mountpoint })
+        });
+        const data = await res.json();
+        if (data.success) {
+            statusMsg.innerHTML = `<span style="color:#16a34a;">✓ ${data.message}</span>`;
+        } else {
+            statusMsg.innerHTML = `<span style="color:#dc2626;">✗ ${data.message}</span>`;
+        }
+    } catch (e) {
+        statusMsg.innerHTML = `<span style="color:#dc2626;">✗ Unmount failed: ${e.message}</span>`;
+    }
+}
+
+async function tpCheckSMBStatus() {
+    const mountpoint = document.getElementById('smb-mountpoint').value.trim() || '/Volumes/trans';
+    const statusMsg = document.getElementById('smb-status-msg');
+    statusMsg.style.display = 'block';
+    statusMsg.innerHTML = '<span style="color:#64748b;">Checking status...</span>';
+
+    try {
+        const res = await fetch(`${BACKEND_BASE}/transport/smb-status?mount_point=${encodeURIComponent(mountpoint)}`, {
+            headers: { 'Authorization': `Bearer ${SESSION_TOKEN}` }
+        });
+        const data = await res.json();
+        if (data.mounted) {
+            statusMsg.innerHTML = `<span style="color:#16a34a;">✓ Mounted: ${data.mount_point}</span>`;
+        } else {
+            statusMsg.innerHTML = `<span style="color:#f59e0b;">⚠ Not mounted: ${data.mount_point}</span>`;
+        }
+    } catch (e) {
+        statusMsg.innerHTML = `<span style="color:#dc2626;">✗ Status check failed: ${e.message}</span>`;
+    }
+}
+

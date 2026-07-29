@@ -9,7 +9,8 @@ import queue
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import StreamingResponse
-from config import TransportCopyPayload, TransportValidatePayload, get_current_user
+import urllib.parse
+from config import TransportCopyPayload, TransportValidatePayload, SMBMountPayload, SMBUnmountPayload, get_current_user
 
 router = APIRouter(tags=["Transport Copy Utility"])
 
@@ -434,3 +435,109 @@ def run_transport_copy(
             "X-Accel-Buffering": "no",   # disables nginx buffering if behind a proxy
         }
     )
+
+
+# ---------------------------------------------------------------------------
+# SMB Auto-Mount Endpoints
+# ---------------------------------------------------------------------------
+
+def _is_mounted(mount_point: str) -> bool:
+    """Check whether a path is currently an active mount point on macOS."""
+    try:
+        rc, out, _ = _run(["mount"], timeout=10)
+        return mount_point in out
+    except Exception:
+        return False
+
+
+@router.post("/transport/smb-mount")
+def smb_mount(
+    payload: SMBMountPayload,
+    current_user: dict = Depends(get_current_user)
+):
+    """
+    Mounts an SMB share onto the local filesystem using macOS mount_smbfs.
+    Credentials are passed directly — never stored on disk.
+    """
+    mount_point = payload.mount_point.rstrip("/")
+
+    # Already mounted — nothing to do
+    if _is_mounted(mount_point):
+        return {"success": True, "message": f"Share already mounted at {mount_point}."}
+
+    # Create mount point directory if it doesn't exist
+    try:
+        os.makedirs(mount_point, exist_ok=True)
+    except Exception as e:
+        return {"success": False, "message": f"Could not create mount point '{mount_point}': {e}"}
+
+    # URL-encode credentials to safely handle special characters (@, :, /, etc.)
+    user_enc = urllib.parse.quote(payload.smb_user, safe="")
+    pass_enc = urllib.parse.quote(payload.smb_password, safe="")
+    share    = payload.smb_share.strip("/")
+    server   = payload.smb_server.strip()
+
+    smb_url = f"//{user_enc}:{pass_enc}@{server}/{share}"
+
+    try:
+        rc, out, err = _run(["mount_smbfs", smb_url, mount_point], timeout=30)
+        if rc == 0:
+            return {
+                "success": True,
+                "message": f"Successfully mounted //{server}/{share} at {mount_point}."
+            }
+        else:
+            # Clean up empty dir if mount failed
+            try:
+                os.rmdir(mount_point)
+            except Exception:
+                pass
+            return {
+                "success": False,
+                "message": f"mount_smbfs failed (exit {rc}): {err or out}"
+            }
+    except FileNotFoundError:
+        return {"success": False, "message": "'mount_smbfs' not found. This feature requires macOS."}
+    except subprocess.TimeoutExpired:
+        return {"success": False, "message": "SMB mount timed out. Check server address and credentials."}
+    except Exception as e:
+        return {"success": False, "message": f"Unexpected error: {e}"}
+
+
+@router.post("/transport/smb-unmount")
+def smb_unmount(
+    payload: SMBUnmountPayload,
+    current_user: dict = Depends(get_current_user)
+):
+    """Unmounts an SMB share from the local filesystem."""
+    mount_point = payload.mount_point.rstrip("/")
+
+    if not _is_mounted(mount_point):
+        return {"success": True, "message": f"{mount_point} is not currently mounted."}
+
+    try:
+        rc, out, err = _run(["diskutil", "unmount", mount_point], timeout=20)
+        if rc == 0:
+            return {"success": True, "message": f"Unmounted {mount_point} successfully."}
+        # fallback to umount
+        rc2, _, err2 = _run(["umount", mount_point], timeout=20)
+        if rc2 == 0:
+            return {"success": True, "message": f"Unmounted {mount_point} successfully."}
+        return {"success": False, "message": f"Unmount failed: {err or err2}"}
+    except Exception as e:
+        return {"success": False, "message": f"Unexpected error: {e}"}
+
+
+@router.get("/transport/smb-status")
+def smb_status(
+    mount_point: str,
+    current_user: dict = Depends(get_current_user)
+):
+    """Returns whether the given path is currently an active SMB mount."""
+    mounted = _is_mounted(mount_point)
+    return {
+        "mount_point": mount_point,
+        "mounted": mounted,
+        "message": f"{'Mounted' if mounted else 'Not mounted'}: {mount_point}"
+    }
+
