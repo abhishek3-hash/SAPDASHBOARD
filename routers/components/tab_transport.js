@@ -145,6 +145,7 @@ const tabTransportHTML = `
                         title="Clear log and reset">
                         <i data-lucide="rotate-ccw" style="width:14px;height:14px;"></i>
                     </button>
+                </div>
             </div>
 
             <!-- RIGHT: Live log + target badges -->
