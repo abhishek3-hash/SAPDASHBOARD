@@ -14,116 +14,137 @@ const tabTransportHTML = `
         </div>
 
         <!-- Two-column layout: form left, status right -->
-        <div style="display:grid;grid-template-columns:340px 1fr;gap:1.25rem;flex:1;min-height:0;overflow:hidden;">
+        <div style="display:grid;grid-template-columns:360px 1fr;gap:1.25rem;flex:1;min-height:0;overflow:hidden;">
 
             <!-- LEFT: Input Form (scrollable independently if content overflows) -->
-            <div class="card" style="padding:1.25rem;display:flex;flex-direction:column;gap:1rem;overflow-y:auto;">
-                <div style="font-size:0.8rem;font-weight:700;color:var(--sap-text-muted);letter-spacing:0.05em;text-transform:uppercase;">Transport Parameters</div>
+            <div class="card" style="padding:1.25rem;display:flex;flex-direction:column;gap:0.9rem;overflow-y:auto;box-sizing:border-box;width:100%;">
+                <div style="font-size:0.8rem;font-weight:700;color:var(--sap-text-muted);letter-spacing:0.05em;text-transform:uppercase;display:flex;align-items:center;gap:0.4rem;">
+                    <i data-lucide="sliders" style="width:14px;height:14px;color:#0a6ed1;"></i> Transport Parameters
+                </div>
 
-                <div class="form-group">
-                    <label style="font-size:0.75rem;font-weight:600;color:var(--sap-text-muted);">Transport Request #</label>
-                    <input id="tp-trkorr" type="text" placeholder="e.g. EH8K900319" style="font-family:monospace;text-transform:uppercase;"
+                <!-- Transport Request # -->
+                <div class="form-group" style="width:100%;box-sizing:border-box;">
+                    <label style="font-size:0.75rem;font-weight:600;color:var(--sap-text-muted);margin-bottom:0.25rem;display:block;">Transport Request #</label>
+                    <input id="tp-trkorr" type="text" placeholder="e.g. EH8K900319"
+                        style="width:100%;box-sizing:border-box;padding:0.5rem 0.65rem;border:1px solid var(--sap-border);border-radius:8px;font-size:0.82rem;font-family:monospace;text-transform:uppercase;background:rgba(255,255,255,0.85);"
                         oninput="this.value=this.value.toUpperCase(); tpDeriveSID();">
-                    <div id="tp-sid-badge" style="display:none;margin-top:0.35rem;font-size:0.72rem;color:#0a6ed1;font-weight:600;">
-                        <i data-lucide="tag" style="width:11px;height:11px;"></i>
-                        SID: <span id="tp-sid-val"></span> &nbsp;|&nbsp; Cofile: <span id="tp-cofile-val"></span> &nbsp;|&nbsp; Data: <span id="tp-datafile-val"></span>
+                    <div id="tp-sid-badge" style="display:none;margin-top:0.4rem;padding:0.5rem 0.65rem;background:rgba(10,110,209,0.06);border:1px solid rgba(10,110,209,0.2);border-radius:8px;flex-direction:column;gap:0.3rem;">
+                        <div style="display:flex;align-items:center;gap:0.35rem;font-size:0.75rem;font-weight:700;color:#0a6ed1;">
+                            <i data-lucide="tag" style="width:12px;height:12px;"></i>
+                            <span>SID: <span id="tp-sid-val" style="font-family:monospace;color:#0284c7;font-weight:700;"></span></span>
+                        </div>
+                        <div style="display:flex;gap:0.4rem;font-size:0.7rem;font-family:monospace;flex-wrap:wrap;">
+                            <span style="background:rgba(255,255,255,0.9);padding:2px 6px;border-radius:4px;border:1px solid rgba(0,0,0,0.08);color:var(--sap-text);">Cofile: <strong id="tp-cofile-val" style="color:#0f172a;"></strong></span>
+                            <span style="background:rgba(255,255,255,0.9);padding:2px 6px;border-radius:4px;border:1px solid rgba(0,0,0,0.08);color:var(--sap-text);">Data: <strong id="tp-datafile-val" style="color:#0f172a;"></strong></span>
+                        </div>
                     </div>
                 </div>
 
-                <div class="form-group">
-                    <label style="font-size:0.75rem;font-weight:600;color:var(--sap-text-muted);">Source Host</label>
-                    <div style="display:flex;gap:0.5rem;">
-                        <input id="tp-src-host" type="text" placeholder="SSH alias, e.g. S22" style="flex:1;">
+                <!-- Source Host -->
+                <div class="form-group" style="width:100%;box-sizing:border-box;">
+                    <label style="font-size:0.75rem;font-weight:600;color:var(--sap-text-muted);margin-bottom:0.25rem;display:block;">Source Host</label>
+                    <div style="display:flex;gap:0.4rem;width:100%;box-sizing:border-box;">
+                        <input id="tp-src-host" type="text" placeholder="SSH alias or SID, e.g. EH8 or S22" style="flex:1;min-width:0;box-sizing:border-box;padding:0.45rem 0.6rem;border:1px solid var(--sap-border);border-radius:7px;font-size:0.78rem;background:rgba(255,255,255,0.85);">
                         <button onclick="tpValidateHost('src')" id="btn-validate-src"
-                            style="padding:0.4rem 0.6rem;font-size:0.72rem;white-space:nowrap;background:rgba(10,110,209,0.1);color:#0a6ed1;border:1px solid rgba(10,110,209,0.25);border-radius:6px;cursor:pointer;">
+                            style="padding:0.45rem 0.75rem;font-size:0.73rem;font-weight:600;white-space:nowrap;background:rgba(10,110,209,0.08);color:#0a6ed1;border:1px solid rgba(10,110,209,0.25);border-radius:7px;cursor:pointer;display:flex;align-items:center;gap:0.3rem;">
                             <i data-lucide="plug" style="width:12px;height:12px;"></i> Test
                         </button>
                     </div>
                     <div id="tp-src-status" style="font-size:0.72rem;margin-top:0.3rem;display:none;"></div>
                 </div>
 
-                <div class="form-group">
-                    <label style="font-size:0.75rem;font-weight:600;color:var(--sap-text-muted);">Target Host(s) <span style="font-weight:400;">(comma-separated)</span></label>
-                    <input id="tp-tgt-hosts" type="text" placeholder="e.g. S4H, S21, EH8">
+                <!-- Target Host(s) -->
+                <div class="form-group" style="width:100%;box-sizing:border-box;">
+                    <label style="font-size:0.75rem;font-weight:600;color:var(--sap-text-muted);margin-bottom:0.25rem;display:block;">Target Host(s) <span style="font-weight:400;color:var(--sap-text-muted);">(comma-separated)</span></label>
+                    <input id="tp-tgt-hosts" type="text" placeholder="e.g. S4H, S21, EH8" style="width:100%;box-sizing:border-box;padding:0.45rem 0.6rem;border:1px solid var(--sap-border);border-radius:7px;font-size:0.78rem;background:rgba(255,255,255,0.85);">
                 </div>
 
-                <div class="form-group">
-                    <label style="font-size:0.75rem;font-weight:600;color:var(--sap-text-muted);">Base Transport Directory</label>
-                    <input id="tp-base-dir" type="text" value="/usr/sap/trans">
+                <!-- Base Transport Directory -->
+                <div class="form-group" style="width:100%;box-sizing:border-box;">
+                    <label style="font-size:0.75rem;font-weight:600;color:var(--sap-text-muted);margin-bottom:0.25rem;display:block;">Base Transport Directory</label>
+                    <input id="tp-base-dir" type="text" value="/usr/sap/trans" style="width:100%;box-sizing:border-box;padding:0.45rem 0.6rem;border:1px solid var(--sap-border);border-radius:7px;font-size:0.78rem;font-family:monospace;background:rgba(255,255,255,0.85);">
                 </div>
 
-                <details style="cursor:pointer;">
-                    <summary style="font-size:0.75rem;font-weight:600;color:var(--sap-text-muted);user-select:none;">
-                        Local Mount Hosts (Windows/SMB) — optional
+                <!-- Accordion: Local Mount Hosts JSON -->
+                <details style="cursor:pointer;width:100%;box-sizing:border-box;border:1px solid var(--sap-border);border-radius:8px;padding:0.5rem 0.65rem;background:rgba(255,255,255,0.5);">
+                    <summary style="font-size:0.73rem;font-weight:600;color:var(--sap-text-muted);user-select:none;display:flex;align-items:center;gap:0.3rem;">
+                        <i data-lucide="folder-tree" style="width:12px;height:12px;color:#64748b;"></i> Local Mount Hosts (Windows/SMB)
                     </summary>
-                    <div style="margin-top:0.6rem;">
-                        <label style="font-size:0.72rem;color:var(--sap-text-muted);">JSON map of host → mount path</label>
+                    <div style="margin-top:0.5rem;width:100%;box-sizing:border-box;">
+                        <label style="font-size:0.7rem;color:var(--sap-text-muted);margin-bottom:0.2rem;display:block;">JSON map of host → mount path</label>
                         <textarea id="tp-local-mounts" rows="2"
-                            placeholder='{"EH8": "/Volumes/trans"}'
-                            style="width:100%;font-family:monospace;font-size:0.75rem;padding:0.5rem;border:1px solid var(--sap-border);border-radius:6px;background:rgba(255,255,255,0.6);resize:vertical;margin-top:0.35rem;"></textarea>
+                            placeholder='{"EH8": "/tmp/trans"}'
+                            style="width:100%;box-sizing:border-box;font-family:monospace;font-size:0.73rem;padding:0.45rem;border:1px solid var(--sap-border);border-radius:6px;background:rgba(255,255,255,0.9);resize:vertical;"></textarea>
                     </div>
                 </details>
 
-                <details style="cursor:pointer;" id="tp-smb-details">
-                    <summary style="font-size:0.75rem;font-weight:600;color:#0a6ed1;user-select:none;display:flex;align-items:center;gap:0.3rem;">
-                        <i data-lucide="hard-drive" style="width:13px;height:13px;"></i> SMB Auto-Mount Control &amp; Saved Profiles
+                <!-- Accordion: SMB Auto-Mount Control -->
+                <details style="cursor:pointer;width:100%;box-sizing:border-box;border:1px solid rgba(10,110,209,0.2);border-radius:8px;padding:0.5rem 0.65rem;background:rgba(10,110,209,0.03);" id="tp-smb-details">
+                    <summary style="font-size:0.73rem;font-weight:600;color:#0a6ed1;user-select:none;display:flex;align-items:center;gap:0.3rem;">
+                        <i data-lucide="hard-drive" style="width:13px;height:13px;"></i> SMB Auto-Mount &amp; Profiles
                     </summary>
-                    <div style="margin-top:0.6rem;display:flex;flex-direction:column;gap:0.5rem;background:rgba(10,110,209,0.04);padding:0.75rem;border-radius:8px;border:1px solid rgba(10,110,209,0.15);">
-                        <div style="font-size:0.72rem;color:var(--sap-text-muted);">Save &amp; auto-mount SMB shares (e.g. EH8):</div>
-                        
-                        <!-- Saved Profiles Selection Dropdown -->
-                        <div style="display:flex;gap:0.4rem;align-items:center;">
-                            <select id="smb-profile-select" onchange="tpLoadSMBProfile()" style="flex:1;font-size:0.75rem;padding:0.4rem;border-radius:6px;border:1px solid var(--sap-border);background:white;">
+                    
+                    <div style="margin-top:0.6rem;display:flex;flex-direction:column;gap:0.5rem;width:100%;box-sizing:border-box;">
+                        <!-- Saved Profiles Dropdown & Delete -->
+                        <div style="display:flex;gap:0.35rem;align-items:center;width:100%;box-sizing:border-box;">
+                            <select id="smb-profile-select" onchange="tpLoadSMBProfile()" style="flex:1;min-width:0;box-sizing:border-box;font-size:0.75rem;padding:0.4rem 0.5rem;border-radius:6px;border:1px solid var(--sap-border);background:white;color:var(--sap-text);">
                                 <option value="">-- Select Saved SMB Profile --</option>
                             </select>
-                            <button onclick="tpDeleteSMBProfile()" style="padding:0.4rem 0.55rem;font-size:0.72rem;background:rgba(220,38,38,0.1);color:#dc2626;border:1px solid rgba(220,38,38,0.2);border-radius:6px;cursor:pointer;" title="Delete selected profile">
+                            <button onclick="tpDeleteSMBProfile()" style="padding:0.4rem 0.55rem;font-size:0.7rem;font-weight:600;background:rgba(220,38,38,0.08);color:#dc2626;border:1px solid rgba(220,38,38,0.2);border-radius:6px;cursor:pointer;white-space:nowrap;" title="Delete selected profile">
                                 Delete
                             </button>
                         </div>
 
-                        <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.4rem;">
-                            <input id="smb-system-name" type="text" placeholder="System SID / Name (e.g. EH8)" style="font-size:0.75rem;padding:0.4rem;text-transform:uppercase;" oninput="this.value=this.value.toUpperCase();">
-                            <input id="smb-server" type="text" placeholder="SMB Server IP / Host, e.g. 52.52.3.97" style="font-size:0.75rem;padding:0.4rem;">
+                        <!-- System Name & IP -->
+                        <div style="display:grid;grid-template-columns:repeat(2, minmax(0, 1fr));gap:0.4rem;width:100%;box-sizing:border-box;">
+                            <input id="smb-system-name" type="text" placeholder="SID (e.g. EH8)" style="width:100%;min-width:0;box-sizing:border-box;font-size:0.75rem;padding:0.4rem 0.5rem;border:1px solid var(--sap-border);border-radius:6px;background:white;text-transform:uppercase;" oninput="this.value=this.value.toUpperCase();">
+                            <input id="smb-server" type="text" placeholder="Server IP, e.g. 52.52.3.97" style="width:100%;min-width:0;box-sizing:border-box;font-size:0.75rem;padding:0.4rem 0.5rem;border:1px solid var(--sap-border);border-radius:6px;background:white;">
                         </div>
 
-                        <input id="smb-share" type="text" placeholder="Share Name, e.g. trans or saploc/trans" style="font-size:0.75rem;padding:0.4rem;">
+                        <!-- Share Name -->
+                        <input id="smb-share" type="text" placeholder="Share Name, e.g. trans or saploc/trans" style="width:100%;box-sizing:border-box;font-size:0.75rem;padding:0.4rem 0.5rem;border:1px solid var(--sap-border);border-radius:6px;background:white;">
 
-                        <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.4rem;">
-                            <input id="smb-user" type="text" placeholder="Username" style="font-size:0.75rem;padding:0.4rem;">
-                            <input id="smb-pass" type="password" placeholder="Password" style="font-size:0.75rem;padding:0.4rem;">
+                        <!-- User & Password -->
+                        <div style="display:grid;grid-template-columns:repeat(2, minmax(0, 1fr));gap:0.4rem;width:100%;box-sizing:border-box;">
+                            <input id="smb-user" type="text" placeholder="Username" style="width:100%;min-width:0;box-sizing:border-box;font-size:0.75rem;padding:0.4rem 0.5rem;border:1px solid var(--sap-border);border-radius:6px;background:white;">
+                            <input id="smb-pass" type="password" placeholder="Password" style="width:100%;min-width:0;box-sizing:border-box;font-size:0.75rem;padding:0.4rem 0.5rem;border:1px solid var(--sap-border);border-radius:6px;background:white;">
                         </div>
 
-                        <input id="smb-mountpoint" type="text" value="/tmp/trans" placeholder="Mount Point, e.g. /tmp/trans or ~/trans" style="font-size:0.75rem;padding:0.4rem;font-family:monospace;">
+                        <!-- Mount Point -->
+                        <input id="smb-mountpoint" type="text" value="/tmp/trans" placeholder="Mount Point, e.g. /tmp/trans" style="width:100%;box-sizing:border-box;font-size:0.75rem;padding:0.4rem 0.5rem;border:1px solid var(--sap-border);border-radius:6px;background:white;font-family:monospace;">
                         
-                        <div style="display:flex;gap:0.4rem;margin-top:0.2rem;">
-                            <button onclick="tpMountSMB()" style="flex:1;padding:0.4rem;font-size:0.72rem;font-weight:600;background:#16a34a;color:white;border:none;border-radius:6px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:0.3rem;">
+                        <!-- Action Buttons -->
+                        <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.35rem;width:100%;box-sizing:border-box;margin-top:0.2rem;">
+                            <button onclick="tpMountSMB()" style="padding:0.45rem;font-size:0.72rem;font-weight:700;background:linear-gradient(135deg,#16a34a,#15803d);color:white;border:none;border-radius:6px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:0.3rem;">
                                 <i data-lucide="link" style="width:11px;height:11px;"></i> Mount Share
                             </button>
-                            <button onclick="tpSaveSMBProfile()" style="padding:0.4rem 0.6rem;font-size:0.72rem;font-weight:600;background:#0a6ed1;color:white;border:none;border-radius:6px;cursor:pointer;">
-                                Save Profile
+                            <button onclick="tpSaveSMBProfile()" style="padding:0.45rem;font-size:0.72rem;font-weight:700;background:linear-gradient(135deg,#0a6ed1,#0284c7);color:white;border:none;border-radius:6px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:0.3rem;">
+                                <i data-lucide="save" style="width:11px;height:11px;"></i> Save Profile
                             </button>
-                            <button onclick="tpUnmountSMB()" style="padding:0.4rem 0.6rem;font-size:0.72rem;background:rgba(220,38,38,0.1);color:#dc2626;border:1px solid rgba(220,38,38,0.2);border-radius:6px;cursor:pointer;">
+                        </div>
+                        <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.35rem;width:100%;box-sizing:border-box;">
+                            <button onclick="tpCheckSMBStatus()" style="padding:0.4rem;font-size:0.71rem;font-weight:600;background:rgba(100,116,139,0.08);color:#475569;border:1px solid rgba(100,116,139,0.2);border-radius:6px;cursor:pointer;">
+                                Check Status
+                            </button>
+                            <button onclick="tpUnmountSMB()" style="padding:0.4rem;font-size:0.71rem;font-weight:600;background:rgba(220,38,38,0.08);color:#dc2626;border:1px solid rgba(220,38,38,0.2);border-radius:6px;cursor:pointer;">
                                 Unmount
-                            </button>
-                            <button onclick="tpCheckSMBStatus()" style="padding:0.4rem 0.6rem;font-size:0.72rem;background:rgba(100,116,139,0.1);color:#64748b;border:1px solid rgba(100,116,139,0.2);border-radius:6px;cursor:pointer;">
-                                Status
                             </button>
                         </div>
                         <div id="smb-status-msg" style="font-size:0.72rem;margin-top:0.2rem;display:none;"></div>
                     </div>
                 </details>
 
-                <div style="display:flex;gap:0.5rem;margin-top:0.25rem;">
+                <!-- Run Copy & Reset Buttons -->
+                <div style="display:flex;gap:0.5rem;margin-top:0.3rem;width:100%;box-sizing:border-box;">
                     <button id="btn-tp-run" onclick="tpRunCopy()"
-                        style="flex:1;padding:0.6rem;font-size:0.82rem;font-weight:600;background:linear-gradient(135deg,#0a6ed1,#054a91);color:white;border:none;border-radius:8px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:0.4rem;transition:opacity 0.2s;">
+                        style="flex:1;padding:0.65rem;font-size:0.83rem;font-weight:700;background:linear-gradient(135deg,#0a6ed1,#054a91);color:white;border:none;border-radius:8px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:0.4rem;box-shadow:0 4px 12px rgba(10,110,209,0.25);transition:all 0.2s;">
                         <i data-lucide="play" style="width:14px;height:14px;"></i> Run Copy
                     </button>
                     <button onclick="tpReset()"
-                        style="padding:0.6rem 0.75rem;font-size:0.82rem;background:rgba(0,0,0,0.05);color:var(--sap-text-muted);border:1px solid var(--sap-border);border-radius:8px;cursor:pointer;"
+                        style="padding:0.65rem 0.8rem;font-size:0.83rem;background:rgba(0,0,0,0.04);color:var(--sap-text-muted);border:1px solid var(--sap-border);border-radius:8px;cursor:pointer;transition:all 0.2s;"
                         title="Clear log and reset">
                         <i data-lucide="rotate-ccw" style="width:14px;height:14px;"></i>
                     </button>
-                </div>
             </div>
 
             <!-- RIGHT: Live log + target badges -->
